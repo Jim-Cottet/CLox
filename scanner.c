@@ -1,6 +1,6 @@
 #include "scanner.h"
 
-int line_number = 0;
+int line_number;
 
 void scan_file(FILE *file)
 {
@@ -10,9 +10,9 @@ void scan_file(FILE *file)
 
     while (fgets(line, sizeof(line), file))
     {
+        line_number++;
         printf("Results for the line #%d \n", line_number);
         scan_tokens(line);
-        line_number++;
     }
     
     fclose(file);
@@ -21,7 +21,7 @@ void scan_file(FILE *file)
 void scan_tokens(char *source)
 {
     int token_count = 0;
-    int token_capacity = 8;
+    int token_capacity = 8; 
     int start = 0;
     int current = 0;
 
@@ -44,9 +44,10 @@ void scan_tokens(char *source)
 
         char c = source[current];
         if (isspace(c))
-        {
+        {   
             current++;
             start = current;
+            printf("' ' at col: %d\n", start);
             continue;
         }
         if (c != '\0') 
