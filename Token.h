@@ -5,8 +5,8 @@
 
 typedef struct {
     TokenType type;
-    const char* lexeme;
-    void *literal;
+    char* lexeme;
+    char *literal;
     int line;
 } Token;
 

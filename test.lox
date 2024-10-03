@@ -1,5 +1,6 @@
 // A comment
-var breakfast = Breakfast();
+var breakfast = "Breakfast";
+var panda = "panda";
 if (breakfast != nil) {
     print breakfast;
 }

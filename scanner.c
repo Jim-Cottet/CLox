@@ -23,11 +23,12 @@ typedef struct {
 // scan_file -> entry function
 void scan_file(FILE *file);
 void scan_tokens(Scanner *self);
-void add_token(TokenType type, Scanner *self);
+void add_token(TokenType type, Scanner *self, char *string);
 Token scan_token(char c, Scanner *self);
 bool is_at_end(Scanner *self);
 bool match(char expected, Scanner *self);
 char peek(Scanner *self);
+void string();
 
 // Function to initialize the Scanner instance
 Scanner* initialize_scanner() {
@@ -61,11 +62,11 @@ void scan_file(FILE *file)
         scan_tokens(self);
     }
     // Append an End OF File token at the end of the list
-    add_token(TOKEN_EOF, self);
+    add_token(TOKEN_EOF, self, NULL);
     // Display all the tokens in the list
     printf("Token list:\n");
     for (int i = 0; i < self->token_count; i++) {
-        printf("Token %d: Type: %d\n ", i, self->tokens[i].type);
+        printf("Token %d - Type %d - Literal %s\n ", i, self->tokens[i].type, self->tokens[i].literal);
     }
     //Freeing the memory
     fclose(file);
@@ -82,11 +83,11 @@ void scan_tokens(Scanner *self)
     {
         char c = self->line[self->current];
         scan_token(c, self);
-        self->current++;
+        self->current++;    
     }
 }
 
-void add_token(TokenType type, Scanner *self)
+void add_token(TokenType type, Scanner *self, char *string)
 {   
     // Verify the space on list and add some if not enough
     if (self->token_count >= self->token_capacity) {
@@ -101,6 +102,7 @@ void add_token(TokenType type, Scanner *self)
     Token token;
     token.type = type;
     token.line = self->line_number;
+    token.literal = string;
     // Append a token to the list
     self->tokens[self->token_count++] = token;
 }
@@ -111,59 +113,63 @@ Token scan_token(char c, Scanner *self)
     switch (c)
     {
     case '(':
-        add_token(LEFT_PAREN, self);
+        add_token(LEFT_PAREN, self, NULL);
         break;
     case ')':
-        add_token(RIGHT_PAREN, self);
+        add_token(RIGHT_PAREN, self, NULL);
         break;
     case '{':
-        add_token(LEFT_BRACE, self);
+        add_token(LEFT_BRACE, self, NULL);
         break;
     case '}':
-        add_token(RIGHT_BRACE, self);
+        add_token(RIGHT_BRACE, self, NULL);
         break;
     case ',':
-        add_token(COMMA, self);
+        add_token(COMMA, self, NULL);
         break;
     case '.':
-        add_token(DOT, self);
+        add_token(DOT, self, NULL);
         break;
     case '-':
-        add_token(MINUS, self);
+        add_token(MINUS, self, NULL);
         break;
     case '+':
-        add_token(PLUS, self);
+        add_token(PLUS, self, NULL);
         break;
     case ';':
-        add_token(SEMICOLON, self);
+        add_token(SEMICOLON, self, NULL);
         break;
     case '*':
-        add_token(STAR, self);
+        add_token(STAR, self, NULL);
         break;
     case '!':
-        add_token((match('=', self) ? BANG_EQUAL : BANG), self);
+        add_token((match('=', self) ? BANG_EQUAL : BANG), self, NULL);
         break;
     case '=':
-        add_token((match('=', self) ? EQUAL_EQUAL : EQUAL), self);
+        add_token((match('=', self) ? EQUAL_EQUAL : EQUAL), self, NULL);
         break;
     case '<':
-        add_token((match('=', self) ? LESS_EQUAL : LESS), self);
+        add_token((match('=', self) ? LESS_EQUAL : LESS), self, NULL);
         break;
     case '>':
-        add_token((match('=', self) ? GREATER_EQUAL : GREATER), self);
+        add_token((match('=', self) ? GREATER_EQUAL : GREATER), self, NULL);
         break;
     case '/':
         if (match('/', self))
             while (peek(self) != '\n' && is_at_end(self) != true) self->current++;
         else
-            add_token(SLASH, self);
+            add_token(SLASH, self, NULL);
         break;
     case ' ':
     case '\r':
     case '\t':
+        self->start = self->current + 1;
         break;
     case '\n':
         self->line_number++;
+        break;
+    case '"':
+        string(self);
         break;
     default:
         //printf(stderr, "Unexpected character '%c'\n", c);
@@ -193,4 +199,36 @@ char peek(Scanner *self)
     // Quickly return the current char
     if (is_at_end(self)) return '\0';
     return self->line[self->current];
+}
+
+void string(Scanner *self)
+{
+    self->current++; //! I don't like that !
+    while (peek(self) != '"' && !is_at_end(self))
+    {
+        if (peek(self) == '\n') self->line_number++;
+        self->current++;
+    }
+
+    if (is_at_end(self))
+    {
+        // Handle unterminated string error
+        // lox.error(self->line_number, "Unterminated string");
+        return;
+    }
+
+    int string_size = (self->current) - (self->start + 1);
+    int pseudo_start = self->start + 1; // Trim the first double quote
+    char *value = (char*)malloc((string_size + 1) * sizeof(char));
+    if (value == NULL) {
+        perror("Failed to allocate memory for string value");
+        exit(EXIT_FAILURE);
+    }
+    for (int i = 0; i < string_size; i++)
+    {
+        value[i] = self->line[pseudo_start];
+        pseudo_start++;
+    } 
+    value[string_size] = '\0';
+    add_token(STRING, self, value);
 }
