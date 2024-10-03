@@ -77,19 +77,8 @@ void scan_tokens(Scanner *self)
     
     while (is_at_end(self) != true)
     {
-
         char c = self->line[self->current];
-
-        if (isspace(c))
-        {   
-            self->current++;
-            self->start = self->current;
-            continue;
-        }
-        if (c != '\0') 
-        {
-            scan_token(c, self);
-        }
+        scan_token(c, self);
         self->current++;
     }
 }
@@ -163,8 +152,15 @@ Token scan_token(char c, Scanner *self)
         else
             add_token(SLASH, self);
         break;
+    case ' ':
+    case '\r':
+    case '\t':
+        break;
+    case '\n':
+        self->line_number++;
+        break;
     default:
-        fprintf(stderr, "Unexpected character '%c'\n", c);
+        //fprintf(stderr, "Unexpected character '%c'\n", c);
         break;
     }
     //add_token(ERROR, self);
