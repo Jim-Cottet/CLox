@@ -9,7 +9,6 @@
 #include "Token.h"
 
 // Declare global variables
-Token *tokens;
 
 // Declare properties
 typedef struct {
@@ -19,6 +18,7 @@ typedef struct {
     int current;
     int line_number;
     char line[256];
+    Token *tokens;
 } Scanner;
 
 // Function to initialize the Scanner instance
@@ -33,19 +33,23 @@ Scanner* initialize_scanner() {
     self->start = 0;
     self->current = 0;
     self->line_number = 0;
-
+        self->tokens = (Token*)malloc(self->token_capacity * sizeof(Token));
+    if (self->tokens == NULL) {
+        perror("Failed to allocate memory for tokens");
+        exit(EXIT_FAILURE);
+    }
     return self;
 }
 
 // top functions declaration
 // scan_file -> entry function
 void scan_file(FILE *file);
-
 void scan_tokens(Scanner *self);
-Token add_token(TokenType type);
+void add_token(TokenType type, Scanner *self);
 Token scan_token(char c, Scanner *self);
 bool is_at_end(Scanner *self);
 bool match(char expected, Scanner *self);
+char peek(Scanner *self);
 
 void scan_file(FILE *file)
 {
@@ -55,8 +59,11 @@ void scan_file(FILE *file)
     while (fgets(self->line, sizeof(self->line), file))
     {
         self->line_number++;
-        printf("Results for the line #%d \n", self->line_number);
         scan_tokens(self);
+    }
+    printf("Token list:\n");
+    for (int i = 0; i < self->token_count; i++) {
+        printf("Token %d: Type: %d\n ", i, self->tokens[i].type);
     }
     fclose(file);
     free(self);
@@ -67,27 +74,9 @@ void scan_tokens(Scanner *self)
     // Initialize properties at each iteration
     self->current = 0;
     self->start = 0;
-    self->token_count= 0;
-    // Token capacity can't be equal to zero
-    if (self->token_capacity == 0) 
-        self->token_capacity = 8;
-
-    Token **tokens = (Token**)malloc(self->token_capacity * sizeof(Token*));
-    if (tokens == NULL) {
-        perror("Failed to allocate memory");
-        exit(EXIT_FAILURE);
-    }
     
-    while (is_at_end(self))
+    while (is_at_end(self) != true)
     {
-        if (self->token_count >= self->token_capacity) {
-            self->token_capacity *= 2;
-            tokens = (Token**)realloc(tokens, self->token_capacity * sizeof(Token*));
-            if (tokens == NULL) {
-                perror("Failed to reallocate memory");
-                exit(EXIT_FAILURE);
-            }
-        }
 
         char c = self->line[self->current];
 
@@ -95,42 +84,30 @@ void scan_tokens(Scanner *self)
         {   
             self->current++;
             self->start = self->current;
-            printf("' ' at col: %d\n", self->start);
             continue;
         }
         if (c != '\0') 
         {
-            tokens[self->token_count] = (Token*)malloc(sizeof(Token)); // Allocate memory for each token
-            if (tokens[self->token_count] == NULL) {
-                perror("Failed to allocate memory for token");
-                exit(EXIT_FAILURE);
-            }
-            Token temp = scan_token(c, self);
-            if (temp.type != 38) {
-                *tokens[self->token_count] = temp;
-                printf("Type: %d\n", temp.type);
-                self->token_count++;
-            }
+            scan_token(c, self);
         }
         self->current++;
     }
-
-    // Free allocated memory
-    for (int i = 0; i < self->token_count; i++) {
-        free(tokens[i]);
-    }
-    free(tokens);
 }
 
-Token add_token(TokenType type)
+void add_token(TokenType type, Scanner *self)
 {
+    if (self->token_count >= self->token_capacity) {
+        self->token_capacity *= 2;
+        self->tokens = (Token*)realloc(self->tokens, self->token_capacity * sizeof(Token));
+        if (self->tokens == NULL) {
+            perror("Failed to reallocate memory for tokens");
+            exit(EXIT_FAILURE);
+        }
+    }
     Token token;
     token.type = type;
-    token.lexeme = NULL;
-    token.literal = NULL;
-    token.line =0;
-
-    return token;
+    token.line = self->line_number;
+    self->tokens[self->token_count++] = token;
 }
 
 Token scan_token(char c, Scanner *self)
@@ -139,60 +116,76 @@ Token scan_token(char c, Scanner *self)
     switch (c)
     {
     case '(':
-        return add_token(LEFT_PAREN);
+        add_token(LEFT_PAREN, self);
         break;
     case ')':
-        return add_token(RIGHT_PAREN);
+        add_token(RIGHT_PAREN, self);
         break;
     case '{':
-        return add_token(LEFT_BRACE);
+        add_token(LEFT_BRACE, self);
         break;
     case '}':
-        return add_token(RIGHT_BRACE);
+        add_token(RIGHT_BRACE, self);
         break;
     case ',':
-        return add_token(COMMA);
+        add_token(COMMA, self);
         break;
     case '.':
-        return add_token(DOT);
+        add_token(DOT, self);
         break;
     case '-':
-        return add_token(MINUS);
+        add_token(MINUS, self);
         break;
     case '+':
-        return add_token(PLUS);
+        add_token(PLUS, self);
         break;
     case ';':
-        return add_token(SEMICOLON);
+        add_token(SEMICOLON, self);
         break;
     case '*':
-        return add_token(STAR);
+        add_token(STAR, self);
         break;
     case '!':
-        add_token((match('=', self) ? BANG_EQUAL : BANG));
+        add_token((match('=', self) ? BANG_EQUAL : BANG), self);
         break;
     case '=':
-        add_token((match('=', self) ? EQUAL_EQUAL : EQUAL));
+        add_token((match('=', self) ? EQUAL_EQUAL : EQUAL), self);
         break;
     case '<':
-        add_token((match('=', self) ? LESS_EQUAL : LESS));
+        add_token((match('=', self) ? LESS_EQUAL : LESS), self);
         break;
     case '>':
-        add_token((match('=', self) ? GREATER_EQUAL : GREATER));
-        break;          
+        add_token((match('=', self) ? GREATER_EQUAL : GREATER), self);
+        break;
+    case '/':
+        if (match('/', self))
+            while (peek(self) != '\n' && is_at_end(self) != true) self->current++;
+        else
+            add_token(SLASH, self);
+        break;
     default:
         fprintf(stderr, "Unexpected character '%c'\n", c);
+        break;
     }
-    return add_token(ERROR);
+    //add_token(ERROR, self);
 }
 
 bool is_at_end(Scanner *self) 
 {
-    return self->current <= strlen(self->line);
+    return self->current >= strlen(self->line);
 }
 
 bool match(char expected, Scanner *self)
 {
     if (is_at_end(self)) return false;
-    if (self->line[self->current + 1] != expected) return false; 
+    if (self->line[self->current + 1] != expected) 
+        return false;
+    else
+        self->current++; 
+}
+
+char peek(Scanner *self) 
+{
+    if (is_at_end(self)) return '\0';
+    return self->line[self->current];
 }

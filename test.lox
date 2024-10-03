@@ -1,2 +1,5 @@
+// A comment
 var breakfast = Breakfast();
-print breakfast;
+if (breakfast != nil) {
+    print breakfast;
+}
