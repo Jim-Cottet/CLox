@@ -8,8 +8,6 @@
 #include "TokenType.h"
 #include "Token.h"
 
-// Declare global variables
-
 // Declare properties
 typedef struct {
     int token_count;
@@ -20,6 +18,16 @@ typedef struct {
     char line[256];
     Token *tokens;
 } Scanner;
+
+// top functions declaration
+// scan_file -> entry function
+void scan_file(FILE *file);
+void scan_tokens(Scanner *self);
+void add_token(TokenType type, Scanner *self);
+Token scan_token(char c, Scanner *self);
+bool is_at_end(Scanner *self);
+bool match(char expected, Scanner *self);
+char peek(Scanner *self);
 
 // Function to initialize the Scanner instance
 Scanner* initialize_scanner() {
@@ -41,30 +49,25 @@ Scanner* initialize_scanner() {
     return self;
 }
 
-// top functions declaration
-// scan_file -> entry function
-void scan_file(FILE *file);
-void scan_tokens(Scanner *self);
-void add_token(TokenType type, Scanner *self);
-Token scan_token(char c, Scanner *self);
-bool is_at_end(Scanner *self);
-bool match(char expected, Scanner *self);
-char peek(Scanner *self);
-
 void scan_file(FILE *file)
-{
+{   
+    // "Constructor" of the scanner.c
     Scanner *self = initialize_scanner();
     self->line_number = 0;
-
+    // Go through the file line by line
     while (fgets(self->line, sizeof(self->line), file))
     {
         self->line_number++;
         scan_tokens(self);
     }
+    // Append an End OF File token at the end of the list
+    add_token(TOKEN_EOF, self);
+    // Display all the tokens in the list
     printf("Token list:\n");
     for (int i = 0; i < self->token_count; i++) {
         printf("Token %d: Type: %d\n ", i, self->tokens[i].type);
     }
+    //Freeing the memory
     fclose(file);
     free(self);
 }
@@ -74,7 +77,7 @@ void scan_tokens(Scanner *self)
     // Initialize properties at each iteration
     self->current = 0;
     self->start = 0;
-    
+    // Read each character of the line
     while (is_at_end(self) != true)
     {
         char c = self->line[self->current];
@@ -84,7 +87,8 @@ void scan_tokens(Scanner *self)
 }
 
 void add_token(TokenType type, Scanner *self)
-{
+{   
+    // Verify the space on list and add some if not enough
     if (self->token_count >= self->token_capacity) {
         self->token_capacity *= 2;
         self->tokens = (Token*)realloc(self->tokens, self->token_capacity * sizeof(Token));
@@ -93,9 +97,11 @@ void add_token(TokenType type, Scanner *self)
             exit(EXIT_FAILURE);
         }
     }
+    // Create a new token
     Token token;
     token.type = type;
     token.line = self->line_number;
+    // Append a token to the list
     self->tokens[self->token_count++] = token;
 }
 
@@ -160,7 +166,7 @@ Token scan_token(char c, Scanner *self)
         self->line_number++;
         break;
     default:
-        //fprintf(stderr, "Unexpected character '%c'\n", c);
+        //printf(stderr, "Unexpected character '%c'\n", c);
         break;
     }
     //add_token(ERROR, self);
@@ -168,11 +174,13 @@ Token scan_token(char c, Scanner *self)
 
 bool is_at_end(Scanner *self) 
 {
+    // Return true if end of file
     return self->current >= strlen(self->line);
 }
 
 bool match(char expected, Scanner *self)
 {
+    // Verify the next char correspond toe the expected char in argument
     if (is_at_end(self)) return false;
     if (self->line[self->current + 1] != expected) 
         return false;
@@ -181,7 +189,8 @@ bool match(char expected, Scanner *self)
 }
 
 char peek(Scanner *self) 
-{
+{   
+    // Quickly return the current char
     if (is_at_end(self)) return '\0';
     return self->line[self->current];
 }
