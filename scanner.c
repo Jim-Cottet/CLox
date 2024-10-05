@@ -28,7 +28,10 @@ Token scan_token(char c, Scanner *self);
 bool is_at_end(Scanner *self);
 bool match(char expected, Scanner *self);
 char peek(Scanner *self);
-void string();
+void string(Scanner *self);
+void number(Scanner *self);
+bool is_digit(char c);
+char peek_next(Scanner *self);
 
 // Function to initialize the Scanner instance
 Scanner* initialize_scanner() {
@@ -172,7 +175,10 @@ Token scan_token(char c, Scanner *self)
         string(self);
         break;
     default:
-        //printf(stderr, "Unexpected character '%c'\n", c);
+        if (is_digit(c))
+            number(self);
+        else
+            printf("Unexpected character '%c'\n", c);
         break;
     }
     //add_token(ERROR, self);
@@ -231,4 +237,41 @@ void string(Scanner *self)
     } 
     value[string_size] = '\0';
     add_token(STRING, self, value);
+}
+
+void number(Scanner *self)
+{
+    while (is_digit(peek(self))) 
+        self->current++;
+
+    if (peek(self) == '.' && is_digit(peek_next(self)))
+        self->current++;
+        while (is_digit(peek(self))) 
+            self->current++;
+
+    int number_size = (self->current) - (self->start);
+    int pseudo_start = self->start;
+    char *value = (char*)malloc((number_size + 1) * sizeof(char));
+    if (value == NULL) {
+        perror("Failed to allocate memory for number value");
+        exit(EXIT_FAILURE);
+    }
+    for (int i = 0; i < number_size; i++)
+    {
+        value[i] = self->line[pseudo_start];
+        pseudo_start++;
+    } 
+    value[number_size] = '\0';
+    add_token(NUMBER, self, value);
+}
+
+char peek_next(Scanner *self)
+{
+    if (self-> current + 1 >= strlen(self->line)) return '\0';
+    return self->line[self->current + 1];
+}
+
+bool is_digit(char c)
+{
+    return c >= '0' && c <= '9';
 }
