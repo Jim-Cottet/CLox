@@ -7,6 +7,7 @@
 // Global structs import
 #include "TokenType.h"
 #include "Token.h"
+#include "keyword_hashtable.h"
 
 // Declare properties
 typedef struct {
@@ -22,9 +23,9 @@ typedef struct {
 // top functions declaration
 // scan_file -> entry function
 void scan_file(FILE *file);
-void scan_tokens(Scanner *self);
+void scan_tokens(Scanner *self, HashTable *table);
 void add_token(TokenType type, Scanner *self, char *string);
-Token scan_token(char c, Scanner *self);
+Token scan_token(char c, Scanner *self, HashTable *table);
 bool is_at_end(Scanner *self);
 bool match(char expected, Scanner *self);
 char peek(Scanner *self);
@@ -32,6 +33,10 @@ void string(Scanner *self);
 void number(Scanner *self);
 bool is_digit(char c);
 char peek_next(Scanner *self);
+void identifier(Scanner *self, HashTable *table);
+bool is_alpha(char c);
+bool is_alphanumeric(char c);
+void create_keyword_table(HashTable *table);
 
 // Function to initialize the Scanner instance
 Scanner* initialize_scanner() {
@@ -54,15 +59,19 @@ Scanner* initialize_scanner() {
 }
 
 void scan_file(FILE *file)
-{   
+{
     // "Constructor" of the scanner.c
     Scanner *self = initialize_scanner();
+    // Insert the keywords in the table
+    HashTable *keyword_table = create_table();
+    create_keyword_table(keyword_table);
+    self->line_number = 0;
     self->line_number = 0;
     // Go through the file line by line
     while (fgets(self->line, sizeof(self->line), file))
     {
         self->line_number++;
-        scan_tokens(self);
+        scan_tokens(self, keyword_table);
     }
     // Append an End OF File token at the end of the list
     add_token(TOKEN_EOF, self, NULL);
@@ -74,9 +83,18 @@ void scan_file(FILE *file)
     //Freeing the memory
     fclose(file);
     free(self);
+    // Free the keyword table
+    for (int i = 0; i < 16; i++) {
+        if (keyword_table->items[i] != NULL) {
+            free(keyword_table->items[i]->key);
+            free(keyword_table->items[i]);
+        }
+    }
+    free(keyword_table->items);
+    free(keyword_table);   
 }
 
-void scan_tokens(Scanner *self)
+void scan_tokens(Scanner *self, HashTable *table)
 {   
     // Initialize properties at each iteration
     self->current = 0;
@@ -85,7 +103,7 @@ void scan_tokens(Scanner *self)
     while (is_at_end(self) != true)
     {
         char c = self->line[self->current];
-        scan_token(c, self);
+        scan_token(c, self, table);
         self->current++;    
     }
 }
@@ -110,7 +128,7 @@ void add_token(TokenType type, Scanner *self, char *string)
     self->tokens[self->token_count++] = token;
 }
 
-Token scan_token(char c, Scanner *self)
+Token scan_token(char c, Scanner *self, HashTable *table)
 {
     Token result;
     switch (c)
@@ -176,7 +194,15 @@ Token scan_token(char c, Scanner *self)
         break;
     default:
         if (is_digit(c))
+        {
             number(self);
+            self->start = self->current + 1;
+        }
+        else if (is_alpha(c))
+        {
+            identifier(self, table);
+            self->start = self->current + 1;
+        }
         else
             printf("Unexpected character '%c'\n", c);
         break;
@@ -236,7 +262,9 @@ void string(Scanner *self)
         pseudo_start++;
     } 
     value[string_size] = '\0';
+    printf("String literal: %s\n", value);
     add_token(STRING, self, value);
+    free(value);
 }
 
 void number(Scanner *self)
@@ -262,7 +290,9 @@ void number(Scanner *self)
         pseudo_start++;
     } 
     value[number_size] = '\0';
+    printf("Number literal: %s\n", value);
     add_token(NUMBER, self, value);
+    free(value);
 }
 
 char peek_next(Scanner *self)
@@ -275,3 +305,67 @@ bool is_digit(char c)
 {
     return c >= '0' && c <= '9';
 }
+
+bool is_alpha(char c)
+{
+    return (c >= 'a' && c <= 'z') || 
+           (c >= 'A' && c <= 'Z') || 
+            c == '_';
+}
+
+bool is_alphanumeric(char c)
+{
+    return is_alpha(c) || is_digit(c);
+}
+
+void identifier(Scanner *self, HashTable *table)
+{
+    while (is_alphanumeric(peek(self)))
+        self->current++;
+
+    int identifier_size = (self->current) - (self->start);
+    int pseudo_start = self->start;
+    char *value = (char*)malloc((identifier_size) * sizeof(char));
+    if (value == NULL) {
+        perror("Failed to allocate memory for number value");
+        exit(EXIT_FAILURE);
+    }
+    for (int i = 0; i < identifier_size; i++)
+    {
+        value[i] = self->line[pseudo_start];
+        pseudo_start++;
+    } 
+    value[identifier_size] = '\0';
+    printf("Value to be searched %s\n", value);
+    TokenType type = lookup(table, value);
+    if (type == TOKEN_EOF)
+        type = IDENTIFIER;
+    // If matches keyword
+    add_token(type, self, NULL);
+    free(value);
+}
+
+void create_keyword_table(HashTable *table)
+{   
+    void insert(HashTable *table, const char *key, TokenType value);
+
+    insert(table, "and", AND);
+    insert(table, "class", CLASS);
+    insert(table, "else", ELSE);
+    insert(table, "false", FALSE);
+    insert(table, "for", FOR);
+    insert(table, "fun", FUN);
+    insert(table, "if", IF);
+    insert(table, "nil", NIL);
+    insert(table, "or", OR);
+    insert(table, "print", PRINT);
+    insert(table, "return", RETURN);
+    insert(table, "super", SUPER);
+    insert(table, "this", THIS);
+    insert(table, "true", TRUE);
+    insert(table, "var", VAR);
+    insert(table, "while", WHILE);
+}
+
+
+

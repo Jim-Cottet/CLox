@@ -1,7 +1,7 @@
 // A comment
 var breakfast = "Breakfast";
 var panda = "panda";
-var number = 123.12
+var number = 123.12;
 if (breakfast != nil) {
     print breakfast;
 }
