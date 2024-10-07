@@ -1,8 +1,25 @@
 #include "common.h"
 
+typedef struct {
+    int current;
+} Parser;
+
+Expr expression();
+Expr equality();
+Expr comparison();
+Token parser_peek(Token *tokens, Parser parser);
+bool match_parser(Parser parser,int num, ...);
+bool check(TokenType type, Parser parser);
+bool parser_is_at_end(TokenType type, Parser parser);
+Token parser_peek(Token *tokens, Parser parser);
+Token previous(Token *tokens, Parser parser);
+
+// Let's do it!
 void parser(Scanner *scanner)
 {
     // Get the Token list from the scanner
+
+    // Declare the parser's structure
 
     // Print the retrieved List
     printf("Token list:\n");
@@ -13,29 +30,84 @@ void parser(Scanner *scanner)
     free(scanner);
 }
 
-// The main problem here is to create a node with different structures
-Expr* create_node_ast(Expr expression) {
-    Expr* newNode = (Expr*)malloc(sizeof(Expr));
-    newNode->op = expression.op;
-    newNode->left = expression.left;
-    newNode->right = expression.right;
-    return newNode;
+// RDP (Gold help us)
+Expr expression(Parser parser, Token *tokens)
+{
+    return equality(parser, tokens);
 }
 
-// Function to insert a new node into the AST
-Expr* insert_node_ast(Expr* root, Expr expression) {
-    if (root == NULL) {
-        return create_node_ast(expression);
+Expr equality(Parser parser, Token *tokens) 
+{
+    Expr expr = comparison();
+    while (match_parser(parser, BANG_EQUAL, EQUAL_EQUAL))
+    {
+        Token operator = previous(tokens, parser);
+        Expr right = comparison(parser, tokens);
+        Expr *new_expr = malloc(sizeof(Expr));
+        new_expr->type = operator.type;
+        new_expr->left = struct expr;
+        new_expr->right= struct right;
+        expr = *new_expr;
     }
-    // We'll need to manage the tree with something else I think...
-    if (expression.op.type < root->op.type) {
-        root->left = insert_node_ast(root->left, expression);
-    } else {
-        root->right = insert_node_ast(root->right, expression);
-    }
-    return root;
+    return expr;
 }
 
+Expr comparison(Parser parser, Token *tokens)
+{
+    Expr expr = term();
+    while (match_parser(parser, GREATER, GREATER_EQUAL, LESS, LESS_EQUAL))
+    {   
+        // Can I refactor this?
+        Token operator = previous(tokens, parser);
+        Expr right = comparison(parser, tokens);
+        Expr *new_expr = malloc(sizeof(Expr));
+        new_expr->type = operator.type;
+        new_expr->left = struct expr;
+        new_expr->right= struct right;
+        expr = *new_expr;
+    }
+}
+
+// Utils
+// Learning Variadic Functions
+bool match_parser(Parser parser,int num, ...)
+{  
+    va_list args;
+    va_start(args, num);
+    for (int i = 0; i < num; i++)
+    {
+        TokenType type = va_arg(args, TokenType);
+        if (check(type, parser))
+        {
+            advance_parser();
+            return true;
+        }
+    }
+    return false;
+}
+
+bool check(TokenType type, Parser parser)
+{
+    if (parser_is_at_end(type, parser)) return false;
+    return parser_peek(type, parser).type == type;
+}
+
+bool parser_is_at_end(TokenType type, Parser parser)
+{
+    return parser_peek(type, parser).type == EOF;
+}
+
+Token parser_peek(Token *tokens, Parser parser)
+{
+    return tokens[parser.current];
+}
+
+Token previous(Token *tokens, Parser parser)
+{
+    return tokens[parser.current - 1];
+}
+
+// Learning tools
 void print_tree(Expr* root) {
     if (root == NULL) {
         return;
@@ -46,27 +118,6 @@ void print_tree(Expr* root) {
     printf("Node: %d\n", root->op.type); // Adjust this line based on what you want to print
     // Traverse the right subtree
     print_tree(root->right);
-}
-
-// Function to check the type of an input
-void check_expr_type(Expr* expr) {
-    switch (expr->type) {
-        case EXPR_UNARY:
-            printf("Expression is of type UNARY\n");
-            break;
-        case EXPR_GROUPING:
-            printf("Expression is of type GROUPING\n");
-            break;
-        case EXPR_LITERAL:
-            printf("Expression is of type LITERAL\n");
-            break;
-        case EXPR_BINARY:
-            printf("Expression is of type BINARY\n");
-            break;
-        default:
-            printf("Unknown expression type\n");
-            break;
-    }
 }
 
 
