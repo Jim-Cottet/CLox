@@ -1,7 +1,1 @@
-// A comment
-var breakfast = "Breakfast";
-var panda = "panda";
-var number = 123.12;
-if (breakfast != nil) {
-    print breakfast;
-}
+1 + a * 12

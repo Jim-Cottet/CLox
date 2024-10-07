@@ -1,8 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "scanner.c"
+#include "common.h"
 
 //* Function declaration
 void run_prompt();
@@ -25,7 +21,8 @@ int main(int argc, char *argv[])
 void run_file(char *filename)
 {
     FILE *file = fopen(filename, "r");
-    scan_file(file);
+    Scanner *scan_results = scan_file(file);
+    parser(scan_results);
 }
 
 void run_prompt()

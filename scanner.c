@@ -1,28 +1,8 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <stdbool.h>
-
-// Global structs import
-#include "TokenType.h"
-#include "Token.h"
-#include "keyword_hashtable.h"
-
-// Declare properties
-typedef struct {
-    int token_count;
-    int token_capacity; 
-    int start;
-    int current;
-    int line_number;
-    char line[256];
-    Token *tokens;
-} Scanner;
+#include "common.h"
 
 // top functions declaration
 // scan_file -> entry function
-void scan_file(FILE *file);
+Scanner* scan_file(FILE *file);
 void scan_tokens(Scanner *self, HashTable *table);
 void add_token(TokenType type, Scanner *self, char *string);
 Token scan_token(char c, Scanner *self, HashTable *table);
@@ -58,7 +38,7 @@ Scanner* initialize_scanner() {
     return self;
 }
 
-void scan_file(FILE *file)
+Scanner* scan_file(FILE *file)
 {
     // "Constructor" of the scanner.c
     Scanner *self = initialize_scanner();
@@ -75,14 +55,9 @@ void scan_file(FILE *file)
     }
     // Append an End OF File token at the end of the list
     add_token(TOKEN_EOF, self, NULL);
-    // Display all the tokens in the list
-    printf("Token list:\n");
-    for (int i = 0; i < self->token_count; i++) {
-        printf("Token %d - Type %d - Literal %s\n ", i, self->tokens[i].type, self->tokens[i].literal);
-    }
+
     //Freeing the memory
     fclose(file);
-    free(self);
     // Free the keyword table
     for (int i = 0; i < 16; i++) {
         if (keyword_table->items[i] != NULL) {
@@ -92,6 +67,9 @@ void scan_file(FILE *file)
     }
     free(keyword_table->items);
     free(keyword_table);   
+
+    // Return the scanner results
+    return self;
 }
 
 void scan_tokens(Scanner *self, HashTable *table)

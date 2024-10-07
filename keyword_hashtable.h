@@ -1,9 +1,4 @@
-#include <stdbool.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include "Token.h"
-#include <malloc.h>
+#include "common.h"
 
 #define SIZE 16
 

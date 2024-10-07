@@ -1,7 +1,3 @@
-// TokenType.h
-#ifndef TOKEN_TYPE_H
-#define TOKEN_TYPE_H
-
 typedef enum {
     LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE,
     COMMA, DOT, MINUS, PLUS, SEMICOLON, SLASH, STAR,
@@ -11,5 +7,3 @@ typedef enum {
     PRINT, RETURN, SUPER, THIS, TRUE, VAR, WHILE,
     ERROR, TOKEN_EOF
 } TokenType;
-
-#endif // TOKEN_TYPE_H
