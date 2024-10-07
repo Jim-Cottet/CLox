@@ -4,9 +4,16 @@ typedef struct {
     int current;
 } Parser;
 
-Expr expression();
-Expr equality();
-Expr comparison();
+// RDP
+Expr* expression(Parser parser, Token *tokens);
+Expr* equality(Parser parser, Token *tokens);
+Expr* comparison(Parser parser, Token *tokens);
+Expr* term(Parser parser, Token *tokens);
+Expr* factor(Parser parser, Token *tokens);
+Expr* unary(Parser parser, Token *tokens);
+Expr* primary(Parser parser, Token *tokens);
+
+// RDG utils
 Token parser_peek(Token *tokens, Parser parser);
 bool match_parser(Parser parser,int num, ...);
 bool check(TokenType type, Parser parser);
@@ -31,40 +38,120 @@ void parser(Scanner *scanner)
 }
 
 // RDP (Gold help us)
-Expr expression(Parser parser, Token *tokens)
+Expr* expression(Parser parser, Token *tokens)
 {
     return equality(parser, tokens);
 }
 
-Expr equality(Parser parser, Token *tokens) 
+Expr* equality(Parser parser, Token *tokens) 
 {
-    Expr expr = comparison();
+    Expr *expr = comparison(parser, tokens);
     while (match_parser(parser, BANG_EQUAL, EQUAL_EQUAL))
     {
         Token operator = previous(tokens, parser);
-        Expr right = comparison(parser, tokens);
+        Expr *right = comparison(parser, tokens);
         Expr *new_expr = malloc(sizeof(Expr));
         new_expr->type = operator.type;
-        new_expr->left = struct expr;
-        new_expr->right= struct right;
-        expr = *new_expr;
+        new_expr->left = expr;
+        new_expr->right= right;
+        expr = new_expr;
     }
     return expr;
 }
 
-Expr comparison(Parser parser, Token *tokens)
+Expr* comparison(Parser parser, Token *tokens)
 {
-    Expr expr = term();
+    Expr *expr = term(parser, tokens);
     while (match_parser(parser, GREATER, GREATER_EQUAL, LESS, LESS_EQUAL))
     {   
         // Can I refactor this?
         Token operator = previous(tokens, parser);
-        Expr right = comparison(parser, tokens);
+        Expr *right = term(parser, tokens);
         Expr *new_expr = malloc(sizeof(Expr));
         new_expr->type = operator.type;
-        new_expr->left = struct expr;
-        new_expr->right= struct right;
-        expr = *new_expr;
+        new_expr->left = expr;
+        new_expr->right= right;
+        expr = new_expr;
+    }
+    return expr;
+}
+
+Expr* term(Parser parser, Token *tokens)
+{
+    Expr *expr = factor(parser, tokens);
+    while (match_parser(parser, MINUS, PLUS))
+    {
+        Token operator = previous(tokens, parser);
+        Expr *right = factor(parser, tokens);
+        Expr *new_expr = malloc(sizeof(Expr));
+        new_expr->type = operator.type;
+        new_expr->left = expr;
+        new_expr->right = right;
+        expr = new_expr;        
+    }
+    return expr;
+}
+
+Expr* factor(Parser parser, Token *tokens)
+{
+    Expr *expr = unary(parser, tokens);
+    while (match_parser(parser, SLASH, STAR))
+    {
+        Token operator = previous(tokens, parser);
+        Expr *right = unary(parser, tokens);
+        Expr *new_expr = malloc(sizeof(Expr));
+        new_expr->type = operator.type;
+        new_expr->left = expr;
+        new_expr->right= right;
+        expr = new_expr;            
+    }
+    return expr;
+}
+
+Expr* unary(Parser parser, Token *tokens)
+{
+    if (match_parser(parser, BANG, MINUS))
+    {
+        Token operator = previous(tokens, parser);
+        Expr *right = unary(parser, tokens);
+        Expr *new_expr = malloc(sizeof(Expr));
+        new_expr->type = operator.type;
+        new_expr->right = right;
+        return new_expr;
+    }
+    return primary(parser, tokens);
+}
+
+Expr* primary(Parser parser, Token *tokens)
+{
+    if (match_parser(parser, FALSE)) 
+    {
+        Expr *new_expr = malloc(sizeof(Expr));
+        new_expr->type = FALSE;
+        return new_expr;
+    }
+    if (match_parser(parser, TRUE)) {
+        Expr *new_expr = malloc(sizeof(Expr));
+        new_expr->type = TRUE;
+        return new_expr;
+    }
+    if (match_parser(parser, NIL)) {
+        Expr *new_expr = malloc(sizeof(Expr));
+        new_expr->type = NIL;
+        return new_expr;
+    }
+    if (match_parser(parser, NUMBER, STRING)) {
+        Expr *new_expr = malloc(sizeof(Expr));
+        new_expr->type = NUMBER;
+        new_expr->op.literal = previous(tokens, parser).literal;
+        return new_expr;
+    }
+
+    if (match_parser(parser, LEFT_PAREN)) {
+        Expr *expr = expression(parser, tokens);
+        // Consume
+        match_parser(parser, RIGHT_PAREN);
+        return expr;
     }
 }
 

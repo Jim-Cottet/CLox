@@ -9,7 +9,7 @@ typedef enum {
 
 typedef struct Expr {
     ExprType type;
-    struct Expr* left;
+    Expr* left;
     Token op;
-    struct Expr* right;
+    Expr* right;
 } Expr;
