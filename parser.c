@@ -46,14 +46,14 @@ void parser(Scanner *scanner)
 // RDP (Gold help us)
 Expr* expression(Parser *parser, Token *tokens)
 {
-    printf("Saddam was here!");
+    printf("Display the RDG travel : \n");
     return equality(parser, tokens);
 }
 
 Expr* equality(Parser *parser, Token *tokens) 
 {
     Expr *expr = comparison(parser, tokens);
-    while (match_parser(tokens ,parser, BANG_EQUAL, EQUAL_EQUAL))
+    while (match_parser(tokens ,parser, BANG_EQUAL, EQUAL_EQUAL, 2))
     {
         Token operator = previous(tokens, parser);
         Expr *right = comparison(parser, tokens);
@@ -62,7 +62,7 @@ Expr* equality(Parser *parser, Token *tokens)
         new_expr->left = expr;
         new_expr->right= right;
         expr = new_expr;
-        printf("Got a comparison");     
+        printf("At %d got an equality\n", parser->current);    
     }
     return expr;
 }
@@ -70,7 +70,7 @@ Expr* equality(Parser *parser, Token *tokens)
 Expr* comparison(Parser *parser, Token *tokens)
 {
     Expr *expr = term(parser, tokens);
-    while (match_parser(tokens, parser, GREATER, GREATER_EQUAL, LESS, LESS_EQUAL))
+    while (match_parser(tokens, parser, GREATER, GREATER_EQUAL, LESS, LESS_EQUAL, 4))
     {   
         // Can I refactor this?
         Token operator = previous(tokens, parser);
@@ -80,7 +80,7 @@ Expr* comparison(Parser *parser, Token *tokens)
         new_expr->left = expr;
         new_expr->right= right;
         expr = new_expr;
-        printf("Got a term");     
+        printf("At %d got a comparison\n", parser->current);   
     }
     return expr;
 }
@@ -88,7 +88,7 @@ Expr* comparison(Parser *parser, Token *tokens)
 Expr* term(Parser *parser, Token *tokens)
 {
     Expr *expr = factor(parser, tokens);
-    while (match_parser(tokens, parser, MINUS, PLUS))
+    while (match_parser(tokens, parser, MINUS, PLUS, 2))
     {
         Token operator = previous(tokens, parser);
         Expr *right = factor(parser, tokens);
@@ -97,7 +97,7 @@ Expr* term(Parser *parser, Token *tokens)
         new_expr->left = expr;
         new_expr->right = right;
         expr = new_expr;
-        printf("Got a Factor");       
+        printf("At %d got a term\n", parser->current);        
     }
     return expr;
 }
@@ -105,7 +105,7 @@ Expr* term(Parser *parser, Token *tokens)
 Expr* factor(Parser *parser, Token *tokens)
 {
     Expr *expr = unary(parser, tokens);
-    while (match_parser(tokens, parser, SLASH, STAR))
+    while (match_parser(tokens, parser, SLASH, STAR, 2))
     {
         Token operator = previous(tokens, parser);
         Expr *right = unary(parser, tokens);
@@ -114,21 +114,21 @@ Expr* factor(Parser *parser, Token *tokens)
         new_expr->left = expr;
         new_expr->right= right;
         expr = new_expr; 
-        printf("Got a Unary");           
+        printf("At %d got a factor\n", parser->current);           
     }
     return expr;
 }
 
 Expr* unary(Parser *parser, Token *tokens)
 {
-    if (match_parser(tokens, parser, BANG, MINUS))
+    if (match_parser(tokens, parser, BANG, MINUS, 2))
     {
         Token operator = previous(tokens, parser);
         Expr *right = unary(parser, tokens);
         Expr *new_expr = malloc(sizeof(Expr));
         new_expr->type = operator.type;
         new_expr->right = right;
-        printf("Got a Unary");     
+        printf("At %d got a unary\n", parser->current);       
         return new_expr;
     }   
     return primary(parser, tokens);
@@ -136,38 +136,38 @@ Expr* unary(Parser *parser, Token *tokens)
 
 Expr* primary(Parser *parser, Token *tokens)
 {
-    if (match_parser(tokens, parser, FALSE)) 
+    if (match_parser(tokens, parser, FALSE, 1)) 
     {
         Expr *new_expr = malloc(sizeof(Expr));
         new_expr->type = FALSE;
-        printf("Got a primary");  
+        printf("At %d got a primary\n", parser->current);   
         return new_expr;
     }
-    if (match_parser(tokens, parser, TRUE)) {
+    if (match_parser(tokens, parser, TRUE, 1)) {
         Expr *new_expr = malloc(sizeof(Expr));
         new_expr->type = TRUE;
-        printf("Got a primary");  
+        printf("At %d got a primary\n", parser->current);  
         return new_expr;
     }
-    if (match_parser(tokens, parser, NIL)) {
+    if (match_parser(tokens, parser, NIL, 1)) {
         Expr *new_expr = malloc(sizeof(Expr));
         new_expr->type = NIL;
-        printf("Got a primary");  
+        printf("At %d got a primary\n", parser->current);  
         return new_expr;
     }
-    if (match_parser(tokens, parser, NUMBER, STRING)) {
+    if (match_parser(tokens, parser, NUMBER, STRING, 2)) {
         Expr *new_expr = malloc(sizeof(Expr));
         new_expr->type = NUMBER;
-        printf("Got a primary");  
+        printf("At %d got a primary\n", parser->current);   
         new_expr->op.literal = previous(tokens, parser).literal;
         return new_expr;
     }
 
-    if (match_parser(tokens, parser, LEFT_PAREN)) {
+    if (match_parser(tokens, parser, LEFT_PAREN, 1)) {
         Expr *expr = expression(parser, tokens);
         // Consume
-        match_parser(tokens, parser, RIGHT_PAREN);
-        printf("Got a primary");  
+        match_parser(tokens, parser, RIGHT_PAREN, 1);
+        printf("At %d got a primary\n", parser->current);  
         return expr;
     }
 }
