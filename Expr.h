@@ -17,12 +17,12 @@ typedef struct Expr {
         // For binary expressions
         struct {
             struct Expr *left;
-            TokenType op;
+            Token token;
             struct Expr *right;
         } binary;
         // For unary expressions
         struct {
-            TokenType op;
+            Token token;
             struct Expr *right;
         } unary;
     } as;

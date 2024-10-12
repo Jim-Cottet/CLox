@@ -112,52 +112,52 @@ Token scan_token(char c, Scanner *self, HashTable *table)
     switch (c)
     {
     case '(':
-        add_token(LEFT_PAREN, self, NULL);
+        add_token(TOKEN_LEFT_PAREN, self, NULL);
         break;
     case ')':
-        add_token(RIGHT_PAREN, self, NULL);
+        add_token(TOKEN_RIGHT_PAREN, self, NULL);
         break;
     case '{':
-        add_token(LEFT_BRACE, self, NULL);
+        add_token(TOKEN_LEFT_BRACE, self, NULL);
         break;
     case '}':
-        add_token(RIGHT_BRACE, self, NULL);
+        add_token(TOKEN_RIGHT_BRACE, self, NULL);
         break;
     case ',':
-        add_token(COMMA, self, NULL);
+        add_token(TOKEN_COMMA, self, NULL);
         break;
     case '.':
-        add_token(DOT, self, NULL);
+        add_token(TOKEN_DOT, self, NULL);
         break;
     case '-':
-        add_token(MINUS, self, NULL);
+        add_token(TOKEN_MINUS, self, NULL);
         break;
     case '+':
-        add_token(PLUS, self, NULL);
+        add_token(TOKEN_PLUS, self, NULL);
         break;
     case ';':
-        add_token(SEMICOLON, self, NULL);
+        add_token(TOKEN_SEMICOLON, self, NULL);
         break;
     case '*':
-        add_token(STAR, self, NULL);
+        add_token(TOKEN_STAR, self, NULL);
         break;
     case '!':
-        add_token((match('=', self) ? BANG_EQUAL : BANG), self, NULL);
+        add_token((match('=', self) ? TOKEN_BANG_EQUAL : TOKEN_BANG), self, NULL);
         break;
     case '=':
-        add_token((match('=', self) ? EQUAL_EQUAL : EQUAL), self, NULL);
+        add_token((match('=', self) ? TOKEN_EQUAL_EQUAL : TOKEN_EQUAL), self, NULL);
         break;
     case '<':
-        add_token((match('=', self) ? LESS_EQUAL : LESS), self, NULL);
+        add_token((match('=', self) ? TOKEN_LESS_EQUAL : TOKEN_LESS), self, NULL);
         break;
     case '>':
-        add_token((match('=', self) ? GREATER_EQUAL : GREATER), self, NULL);
+        add_token((match('=', self) ? TOKEN_GREATER_EQUAL : TOKEN_GREATER), self, NULL);
         break;
     case '/':
         if (match('/', self))
             while (peek(self) != '\n' && is_at_end(self) != true) self->current++;
         else
-            add_token(SLASH, self, NULL);
+            add_token(TOKEN_SLASH, self, NULL);
         break;
     case ' ':
     case '\r':
@@ -241,7 +241,7 @@ void string(Scanner *self)
     } 
     value[string_size] = '\0';
     printf("String literal: %s\n", value);
-    add_token(STRING, self, value);
+    add_token(TOKEN_STRING, self, value);
     free(value);
 }
 
@@ -269,7 +269,7 @@ void number(Scanner *self)
     } 
     value[number_size] = '\0';
     printf("Number literal: %s\n", value);
-    add_token(NUMBER, self, value);
+    add_token(TOKEN_NUMBER, self, value);
     free(value);
 }
 
@@ -317,7 +317,7 @@ void identifier(Scanner *self, HashTable *table)
     printf("Value to be searched %s\n", value);
     TokenType type = lookup(table, value);
     if (type == TOKEN_EOF)
-        type = IDENTIFIER;
+        type = TOKEN_IDENTIFIER;
     // If matches keyword
     add_token(type, self, NULL);
     free(value);
@@ -327,22 +327,22 @@ void create_keyword_table(HashTable *table)
 {   
     void insert(HashTable *table, const char *key, TokenType value);
 
-    insert(table, "and", AND);
-    insert(table, "class", CLASS);
-    insert(table, "else", ELSE);
-    insert(table, "false", FALSE);
-    insert(table, "for", FOR);
-    insert(table, "fun", FUN);
-    insert(table, "if", IF);
-    insert(table, "nil", NIL);
-    insert(table, "or", OR);
-    insert(table, "print", PRINT);
-    insert(table, "return", RETURN);
-    insert(table, "super", SUPER);
-    insert(table, "this", THIS);
-    insert(table, "true", TRUE);
-    insert(table, "var", VAR);
-    insert(table, "while", WHILE);
+    insert(table, "and", TOKEN_AND);
+    insert(table, "class", TOKEN_CLASS);
+    insert(table, "else", TOKEN_ELSE);
+    insert(table, "false", TOKEN_FALSE);
+    insert(table, "for", TOKEN_FOR);
+    insert(table, "fun", TOKEN_FUN);
+    insert(table, "if", TOKEN_IF);
+    insert(table, "nil", TOKEN_NIL);
+    insert(table, "or", TOKEN_OR);
+    insert(table, "print", TOKEN_PRINT);
+    insert(table, "return", TOKEN_RETURN);
+    insert(table, "super", TOKEN_SUPER);
+    insert(table, "this", TOKEN_THIS);
+    insert(table, "true", TOKEN_TRUE);
+    insert(table, "var", TOKEN_VAR);
+    insert(table, "while", TOKEN_WHILE);
 }
 
 
