@@ -47,6 +47,7 @@ void parser(Scanner *scanner)
     free(scanner->tokens);
     free(parser_instance);
     free(scanner);
+    free(ast);
 }
 
 // RDP (Gold help us)
@@ -60,12 +61,16 @@ Expr* equality(Parser *parser, Token *tokens)
     Expr *expr = comparison(parser, tokens);
     while (match_parser(tokens ,parser, TOKEN_BANG_EQUAL, TOKEN_EQUAL_EQUAL, 2))
     {
-        if (expr == NULL)
-            return NULL;
-        expr->type = EXPR_BINARY;
-        expr->as.binary.left = expr;
-        expr->as.binary.token= previous(tokens, parser);
-        expr->as.binary.right = comparison(parser, tokens);;
+        Expr *new_expr = malloc(sizeof(Expr));
+        if (new_expr == NULL) {
+            perror("Failed to allocate memory for expression");
+            exit(EXIT_FAILURE);
+        }
+        new_expr->type = EXPR_BINARY;
+        new_expr->as.binary.left = expr;
+        new_expr->as.binary.token= previous(tokens, parser);
+        new_expr->as.binary.right = comparison(parser, tokens);
+        expr = new_expr;
     }
     return expr;
 }
@@ -75,12 +80,16 @@ Expr* comparison(Parser *parser, Token *tokens)
     Expr *expr = term(parser, tokens);
     while (match_parser(tokens, parser, TOKEN_GREATER, TOKEN_GREATER_EQUAL, TOKEN_LESS, TOKEN_LESS_EQUAL, 4))
     {
-        if (expr == NULL)
-            return NULL;
-        expr->type = EXPR_BINARY;
-        expr->as.binary.left = expr;
-        expr->as.binary.token= previous(tokens, parser);
-        expr->as.binary.right = term(parser, tokens);;
+        Expr *new_expr = malloc(sizeof(Expr));
+        if (new_expr == NULL) {
+            perror("Failed to allocate memory for expression");
+            exit(EXIT_FAILURE);
+        }
+        new_expr->type = EXPR_BINARY;
+        new_expr->as.binary.left = expr;
+        new_expr->as.binary.token= previous(tokens, parser);
+        new_expr->as.binary.right = term(parser, tokens);
+        expr = new_expr;
     }
     return expr;
 }
@@ -91,12 +100,16 @@ Expr* term(Parser *parser, Token *tokens)
     expr = factor(parser, tokens);
     while (match_parser(tokens, parser, TOKEN_MINUS, TOKEN_PLUS, 2))
     {
-        if (expr == NULL)
-            return NULL;
-        expr->type = EXPR_BINARY;
-        expr->as.binary.left = expr;
-        expr->as.binary.token= previous(tokens, parser);
-        expr->as.binary.right = factor(parser, tokens);
+        Expr *new_expr = malloc(sizeof(Expr));
+        if (new_expr == NULL) {
+            perror("Failed to allocate memory for expression");
+            exit(EXIT_FAILURE);
+        }
+        new_expr->type = EXPR_BINARY;
+        new_expr->as.binary.left = expr;
+        new_expr->as.binary.token= previous(tokens, parser);
+        new_expr->as.binary.right = factor(parser, tokens);
+        expr = new_expr;
     }
     return expr;
 }
@@ -106,12 +119,16 @@ Expr* factor(Parser *parser, Token *tokens)
     Expr *expr = unary(parser, tokens);
     while (match_parser(tokens, parser, TOKEN_SLASH, TOKEN_STAR, 2))
     {
-        if (expr == NULL)
-            return NULL;
-        expr->type = EXPR_BINARY;
-        expr->as.binary.left = expr;
-        expr->as.binary.token= previous(tokens, parser);
-        expr->as.binary.right = unary(parser, tokens);   
+        Expr *new_expr = malloc(sizeof(Expr));
+        if (new_expr == NULL) {
+            perror("Failed to allocate memory for expression");
+            exit(EXIT_FAILURE);
+        }
+        new_expr->type = EXPR_BINARY;
+        new_expr->as.binary.left = expr;
+        new_expr->as.binary.token= previous(tokens, parser);
+        new_expr->as.binary.right = unary(parser, tokens);
+        expr = new_expr;   
     }
     return expr;
 }
@@ -134,8 +151,6 @@ Expr* primary(Parser *parser, Token *tokens)
     {
         Expr *expr = malloc(sizeof(Expr));
         expr->type = EXPR_LITERAL;
-        if (previous(tokens, parser).literal == NULL)
-            return NULL;
         expr->as.literal.value = previous(tokens, parser).literal;
         return expr;
     }
@@ -196,35 +211,37 @@ Token previous(Token *tokens, Parser *parser)
 }
 
 // Learning utils
+// Learning utils
 void print_tree(Expr *expr) {
-
-    
-    if (expr == NULL) return;
-
+    if (expr == NULL) {
+        return;
+    }
     switch (expr->type) {
         case EXPR_LITERAL:
             printf("Literal: %s\n", expr->as.literal.value);
             break;
         case EXPR_BINARY:
-            printf("Binary Expr: %d\n", expr->as.binary.token.type);
-            if (expr->as.binary.left != NULL) {
-                print_tree(expr->as.binary.left);
-            }
-            if (expr->as.binary.right != NULL) {
-                print_tree(expr->as.binary.right);
-            }
+            printf("Binary Expression:\n");
+            printf("Left: ");
+            print_tree(expr->as.binary.left);
+            printf("Operator: %d\n", expr->as.binary.token.type);
+            printf("Right: ");
+            print_tree(expr->as.binary.right);
             break;
         case EXPR_UNARY:
-            printf("Unary Expr: %d\n", expr->as.unary.token.type);
-            if (expr->as.unary.right != NULL) {
-                print_tree(expr->as.unary.right);
-            }
+            printf("Unary Expression:\n");
+            printf("Operator: %d\n", expr->as.unary.token.type);
+            printf("Right: ");
+            print_tree(expr->as.unary.right);
             break;
-        default:
+        // Add cases for other expression types
+        default: {
             printf("Unknown expression type\n");
             break;
+        }
     }
 }
+
 
 
 
