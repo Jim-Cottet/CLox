@@ -9,7 +9,21 @@ typedef enum {
 
 typedef struct Expr {
     ExprType type;
-    struct Expr* left;
-    Token op;
-    struct Expr* right;
+    union {
+        // For literal expression types as needed
+        struct {
+            char *value;
+        } literal;
+        // For binary expressions
+        struct {
+            struct Expr *left;
+            TokenType op;
+            struct Expr *right;
+        } binary;
+        // For unary expressions
+        struct {
+            TokenType op;
+            struct Expr *right;
+        } unary;
+    } as;
 } Expr;

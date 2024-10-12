@@ -19,6 +19,11 @@ bool match_parser(Token *tokens, Parser *parser,int num, ...);
 bool check(TokenType type, Parser *parser, Token *tokens);
 bool parser_is_at_end(TokenType type, Parser *parser, Token *tokens);
 Token previous(Token *tokens, Parser *parser);
+void print_tree(Expr* root);
+Expr* return_binary_expr(Expr *expr, Parser *parser, Token *tokens, Expr *right);
+
+// Learning
+void print_tree(Expr *expr);
 
 // Let's do it!
 void parser(Scanner *scanner)
@@ -36,7 +41,9 @@ void parser(Scanner *scanner)
     for (int i = 0; i < scanner->token_count; i++) {
         printf("Token %d - Type %d - Literal %s\n ", i, scanner->tokens[i].type, scanner->tokens[i].literal);
     }
-    expression(parser_instance, scanner->tokens);
+
+    Expr *ast = expression(parser_instance, scanner->tokens);
+    print_tree(ast);
     // Free the scanner results
     free(scanner->tokens);
     free(parser_instance);
@@ -46,7 +53,6 @@ void parser(Scanner *scanner)
 // RDP (Gold help us)
 Expr* expression(Parser *parser, Token *tokens)
 {
-    printf("Display the RDG travel : \n");
     return equality(parser, tokens);
 }
 
@@ -55,13 +61,8 @@ Expr* equality(Parser *parser, Token *tokens)
     Expr *expr = comparison(parser, tokens);
     while (match_parser(tokens ,parser, BANG_EQUAL, EQUAL_EQUAL, 2))
     {
-        Token operator = previous(tokens, parser);
         Expr *right = comparison(parser, tokens);
-        Expr *new_expr = malloc(sizeof(Expr));
-        new_expr->type = operator.type;
-        new_expr->left = expr;
-        new_expr->right= right;
-        expr = new_expr;
+        expr = return_binary_expr(expr, parser, tokens, right);
         printf("At %d got an equality\n", parser->current);    
     }
     return expr;
@@ -71,15 +72,9 @@ Expr* comparison(Parser *parser, Token *tokens)
 {
     Expr *expr = term(parser, tokens);
     while (match_parser(tokens, parser, GREATER, GREATER_EQUAL, LESS, LESS_EQUAL, 4))
-    {   
-        // Can I refactor this?
-        Token operator = previous(tokens, parser);
+    {
         Expr *right = term(parser, tokens);
-        Expr *new_expr = malloc(sizeof(Expr));
-        new_expr->type = operator.type;
-        new_expr->left = expr;
-        new_expr->right= right;
-        expr = new_expr;
+        expr = return_binary_expr(expr, parser, tokens, right);
         printf("At %d got a comparison\n", parser->current);   
     }
     return expr;
@@ -90,13 +85,8 @@ Expr* term(Parser *parser, Token *tokens)
     Expr *expr = factor(parser, tokens);
     while (match_parser(tokens, parser, MINUS, PLUS, 2))
     {
-        Token operator = previous(tokens, parser);
         Expr *right = factor(parser, tokens);
-        Expr *new_expr = malloc(sizeof(Expr));
-        new_expr->type = operator.type;
-        new_expr->left = expr;
-        new_expr->right = right;
-        expr = new_expr;
+        expr = return_binary_expr(expr, parser, tokens, right);
         printf("At %d got a term\n", parser->current);        
     }
     return expr;
@@ -107,13 +97,8 @@ Expr* factor(Parser *parser, Token *tokens)
     Expr *expr = unary(parser, tokens);
     while (match_parser(tokens, parser, SLASH, STAR, 2))
     {
-        Token operator = previous(tokens, parser);
         Expr *right = unary(parser, tokens);
-        Expr *new_expr = malloc(sizeof(Expr));
-        new_expr->type = operator.type;
-        new_expr->left = expr;
-        new_expr->right= right;
-        expr = new_expr; 
+        expr = return_binary_expr(expr, parser, tokens, right);
         printf("At %d got a factor\n", parser->current);           
     }
     return expr;
@@ -126,8 +111,8 @@ Expr* unary(Parser *parser, Token *tokens)
         Token operator = previous(tokens, parser);
         Expr *right = unary(parser, tokens);
         Expr *new_expr = malloc(sizeof(Expr));
-        new_expr->type = operator.type;
-        new_expr->right = right;
+        new_expr->as.unary.op = EXPR_UNARY;
+        new_expr->as.unary.right = right;
         printf("At %d got a unary\n", parser->current);       
         return new_expr;
     }   
@@ -139,27 +124,30 @@ Expr* primary(Parser *parser, Token *tokens)
     if (match_parser(tokens, parser, FALSE, 1)) 
     {
         Expr *new_expr = malloc(sizeof(Expr));
-        new_expr->type = FALSE;
+        new_expr->type = EXPR_LITERAL;
+        new_expr->as.literal.value = previous(tokens, parser).literal;
         printf("At %d got a primary\n", parser->current);   
         return new_expr;
     }
     if (match_parser(tokens, parser, TRUE, 1)) {
         Expr *new_expr = malloc(sizeof(Expr));
-        new_expr->type = TRUE;
+        new_expr->type = EXPR_LITERAL;
+        new_expr->as.literal.value = previous(tokens, parser).literal;
         printf("At %d got a primary\n", parser->current);  
         return new_expr;
     }
     if (match_parser(tokens, parser, NIL, 1)) {
         Expr *new_expr = malloc(sizeof(Expr));
-        new_expr->type = NIL;
+        new_expr->type = EXPR_LITERAL;
+        new_expr->as.literal.value = previous(tokens, parser).literal;
         printf("At %d got a primary\n", parser->current);  
         return new_expr;
     }
     if (match_parser(tokens, parser, NUMBER, STRING, 2)) {
         Expr *new_expr = malloc(sizeof(Expr));
-        new_expr->type = NUMBER;
+        new_expr->type = EXPR_LITERAL;
+        new_expr->as.literal.value = previous(tokens, parser).literal;
         printf("At %d got a primary\n", parser->current);   
-        new_expr->op.literal = previous(tokens, parser).literal;
         return new_expr;
     }
 
@@ -211,19 +199,47 @@ Token previous(Token *tokens, Parser *parser)
     return tokens[parser->current - 1];
 }
 
-// Learning tools
-void print_tree(Expr* root) {
-    if (root == NULL) {
-        return;
-    }
-    // Traverse the left subtree
-    print_tree(root->left);
-    // Print the current node
-    printf("Node: %d\n", root->op.type); // Adjust this line based on what you want to print
-    // Traverse the right subtree
-    print_tree(root->right);
+Expr* return_binary_expr(Expr *expr, Parser *parser, Token *tokens, Expr *right)
+{
+    Token operator = previous(tokens, parser);
+    Expr *new_expr = malloc(sizeof(Expr));
+    new_expr->type = EXPR_BINARY;
+    new_expr->as.binary.left = expr;
+    new_expr->as.binary.op = operator.type;
+    new_expr->as.binary.right= right;
+    return new_expr; 
 }
 
+// Learning utils
+void print_tree(Expr *expr) {
+    if (expr == NULL) {
+        return;
+    }
+    switch (expr->type) {
+        case EXPR_LITERAL:
+            printf("Literal: %s\n", expr->as.literal.value);
+            break;
+        case EXPR_BINARY:
+            printf("Binary Expression:\n");
+            printf("Left: ");
+            print_tree(expr->as.binary.left);
+            printf("Operator: %d\n", expr->as.binary.op);
+            printf("Right: ");
+            print_tree(expr->as.binary.right);
+            break;
+        case EXPR_UNARY:
+            printf("Unary Expression:\n");
+            printf("Operator: %d\n", expr->as.unary.op);
+            printf("Right: ");
+            print_tree(expr->as.unary.right);
+            break;
+        // Add cases for other expression types
+        default: {
+            printf("Unknown expression type\n");
+            break;
+        }
+    }
+}
 
 
 

@@ -14,7 +14,7 @@
 #include "Token.h"
 #include "Expr.h"
 #include "Scanner.h"
-#include "keyword_hashtable.h"
+#include "KeyWordHash.h"
 
 #include "scanner.c"
 #include "parser.c"
